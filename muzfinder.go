@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"bufio"
 
@@ -79,14 +80,14 @@ func main() {
 
 	if *inputdir == "" {
 		fmt.Fprintf(os.Stderr, "Not set inputdir\n")
-		fmt.Fprintf(os.Stderr, "Usage: %s OPTIONS\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s -inputdir dir\n", os.Args[0])
 		flag.PrintDefaults()
 		os.Exit(2)
 	}
 
 	if *inputlist == "" {
 		fmt.Fprintf(os.Stderr, "Not set inputlist\n")
-		fmt.Fprintf(os.Stderr, "Usage: %s OPTIONS\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s -inputlist list\n", os.Args[0])
 		flag.PrintDefaults()
 		os.Exit(2)
 	}
@@ -105,14 +106,20 @@ func main() {
 	r := bufio.NewReader(f)
 	s, err3 := r.ReadString('\n')
 	i := 1
+
+	rxp, _ := regexp.Compile(`\w+ [-—]{1,2} \w+`)
+
 	for err3 == nil {
-		//fmt.Printf("read[%d]: %s\n", i, s)
-		fileList = append(fileList)
+		fmt.Printf("read[%d]: %s\n", i, s)
+		fileList = append(fileList, s)
+
+		fmt.Println(rxp.FindString(s))
+
 		s, err3 = r.ReadString('\n')
 		i++
 	}
 
-	Scanner
+	//Scanner
 
 	// Walk in dirs
 	err2 := filepath.Walk(*inputdir, DirWalk)
@@ -120,15 +127,19 @@ func main() {
 		fmt.Errorf("Dir Walk error: %v", err2)
 	}
 
-	fmt.Printf("Result: add %d songs from directory %s\n", len(mp3List), inputdir)
+	fmt.Printf("Result: add %d songs from directory %s\n", len(mp3List), *inputdir)
 }
 
 /// TODO:
-/// parse flags
+/// 1. parse flags
 /// -inputdir [dir1 dir2] - directories for searching files
 /// -inputlist file - song list for looking for
 /// -outputdir - directory to copy/remove files
 /// -options = copy|remove, add trackid, change trackid as id file
+
+/// 2. get Artist - Title from songlist
+/// regexp and see
+/// see https://github.com/StefanSchroeder/Golang-Regex-Tutorial/blob/master/01-chapter1.markdown
 
 // /media/disk/home/music/latin music
 // /home/vova/Музыка/future/__flash
