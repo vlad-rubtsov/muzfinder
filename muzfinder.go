@@ -1,13 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
-
-	"bufio"
 
 	id3 "github.com/mikkyang/id3-go"
 )
@@ -107,13 +106,24 @@ func main() {
 	s, err3 := r.ReadString('\n')
 	i := 1
 
-	rxp, _ := regexp.Compile(`\w+ [-—]{1,2} \w+`)
+	rxp, _ := regexp.Compile(`(.*) [-—]{1,2} (.*)`)
 
 	for err3 == nil {
-		fmt.Printf("read[%d]: %s\n", i, s)
+		//fmt.Printf("read[%d]: %s", i, s)
 		fileList = append(fileList, s)
 
 		fmt.Println(rxp.FindString(s))
+
+		f := rxp.FindStringSubmatch(s)
+
+		for k, v := range f {
+			fmt.Printf("%d. %s\n", k, v)
+		}
+		// if len(f) > 0 {
+		// 	fmt.Printf("%d. %s\n", 0, f[0])
+		// }
+
+		fmt.Println()
 
 		s, err3 = r.ReadString('\n')
 		i++
