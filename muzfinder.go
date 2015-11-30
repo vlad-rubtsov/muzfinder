@@ -21,6 +21,8 @@ type Mp3Song struct {
 
 var mp3List []Mp3Song
 
+var songlist map[string][]string
+
 func GetMp3Data(filename string) (Mp3Song, error) {
 	mp3File, err := id3.Open(filename)
 	if err != nil {
@@ -67,6 +69,7 @@ func DirWalk(path string, fi os.FileInfo, err error) error {
 }
 
 func main() {
+	songlist = make(map[string][]string)
 	// Check flags
 	inputdir := flag.String("inputdir", "", "Set input dir for searching files")
 	inputlist := flag.String("inputlist", "", "Set song list for searching")
@@ -106,28 +109,42 @@ func main() {
 	s, err3 := r.ReadString('\n')
 	i := 1
 
+	// pattern to get form filename: "^\d+\. (.*) - (.*)\.mp3$"
 	rxp, _ := regexp.Compile(`(.*) [-—]{1,2} (.*)`)
 
 	for err3 == nil {
 		//fmt.Printf("read[%d]: %s", i, s)
 		fileList = append(fileList, s)
-
 		fmt.Println(rxp.FindString(s))
-
 		f := rxp.FindStringSubmatch(s)
 
-		for k, v := range f {
-			fmt.Printf("%d. %s\n", k, v)
-		}
+		// for k, v := range f {
+		// 	fmt.Printf("%d. %s\n", k, v)
+		// }
 		// if len(f) > 0 {
 		// 	fmt.Printf("%d. %s\n", 0, f[0])
 		// }
+		if len(f) == 3 {
+			Artist := f[1]
+			Title := f[2]
+
+			_, ok := songlist[Artist]
+			if ok {
+				songlist[Artist] = append(songlist[Artist], Title)
+			} else {
+				songlist[Artist] = make([]string, 1)
+				songlist[Artist] = append(songlist[Artist], Title)
+			}
+
+		}
 
 		fmt.Println()
 
 		s, err3 = r.ReadString('\n')
 		i++
 	}
+
+	fmt.Println(songlist)
 
 	//Scanner
 
