@@ -31,12 +31,6 @@ func GetMp3Data(filename string) (Mp3Song, error) {
 	}
 	defer mp3File.Close()
 
-	// fmt.Println("Filename:", filename)
-	// fmt.Println("Artist:", mp3File.Artist())
-	// fmt.Println("Title:", mp3File.Title())
-	// fmt.Println("Genre:", mp3File.Genre())
-	// fmt.Println("")
-
 	return Mp3Song{
 		Filename: filename,
 		Artist:   mp3File.Artist(),
@@ -58,18 +52,28 @@ func DirWalk(path string, fi os.FileInfo, err error) error {
 	}
 
 	data, err := GetMp3Data(path)
-	data.Size = fi.Size()
-
 	if err == nil {
 		mp3List = append(mp3List, data)
 	}
+	data.Size = fi.Size()
 
+	elem, ok := songlist[data.Artist]
+	if ok {
+		fmt.Printf("found Artist: %s\n", data.Artist)
+		for _, v := range elem {
+			if v == data.Title {
+				fmt.Printf("found Title: %s\n", data.Title)
+				fmt.Printf("filepath: %s\n", path)
+			}
+		}
+	}
 	//fmt.Println("fi: ", fi)
 	return nil
 }
 
 func main() {
 	songlist = make(map[string][]string)
+
 	// Check flags
 	inputdir := flag.String("inputdir", "", "Set input dir for searching files")
 	inputlist := flag.String("inputlist", "", "Set song list for searching")
@@ -115,7 +119,7 @@ func main() {
 	for err3 == nil {
 		//fmt.Printf("read[%d]: %s", i, s)
 		fileList = append(fileList, s)
-		fmt.Println(rxp.FindString(s))
+		//fmt.Println(rxp.FindString(s))
 		f := rxp.FindStringSubmatch(s)
 
 		// for k, v := range f {
@@ -127,6 +131,7 @@ func main() {
 		if len(f) == 3 {
 			Artist := f[1]
 			Title := f[2]
+			//fmt.Printf("'%v'\n", Title)
 
 			_, ok := songlist[Artist]
 			if ok {
@@ -137,14 +142,12 @@ func main() {
 			}
 
 		}
-
-		fmt.Println()
-
+		//fmt.Println()
 		s, err3 = r.ReadString('\n')
 		i++
 	}
 
-	fmt.Println(songlist)
+	//fmt.Println(songlist)
 
 	//Scanner
 
@@ -154,7 +157,7 @@ func main() {
 		fmt.Errorf("Dir Walk error: %v", err2)
 	}
 
-	fmt.Printf("Result: add %d songs from directory %s\n", len(mp3List), *inputdir)
+	fmt.Printf("Result: walk %d songs from directory %s\n", len(mp3List), *inputdir)
 }
 
 /// TODO:
@@ -168,8 +171,11 @@ func main() {
 /// regexp and see
 /// see https://github.com/StefanSchroeder/Golang-Regex-Tutorial/blob/master/01-chapter1.markdown
 
+/// 3. copy found songs somewhere
+///    write list unfound songs
+//
 // /media/disk/home/music/latin music
-// /home/vova/Музыка/future/__flash
+// /home/vova/Музыка/future (on work, fall down)
 
 // old code
 /*
