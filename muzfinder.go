@@ -22,6 +22,7 @@ type Mp3Song struct {
 var mp3List []Mp3Song
 
 var songlist map[string][]string
+var songFoundCnt int
 
 func GetMp3Data(filename string) (Mp3Song, error) {
 	mp3File, err := id3.Open(filename)
@@ -43,7 +44,8 @@ func GetMp3Data(filename string) (Mp3Song, error) {
 func DirWalk(path string, fi os.FileInfo, err error) error {
 	//fmt.Println("walk path: ", path)
 	if fi.IsDir() {
-		//fmt.Println("it is dir")
+		fmt.Println(path)
+		fmt.Printf("Process %d files\n", len(mp3List))
 		return nil
 	}
 
@@ -53,17 +55,17 @@ func DirWalk(path string, fi os.FileInfo, err error) error {
 
 	data, err := GetMp3Data(path)
 	if err == nil {
+		data.Size = fi.Size()
 		mp3List = append(mp3List, data)
-	}
-	data.Size = fi.Size()
 
-	elem, ok := songlist[data.Artist]
-	if ok {
-		fmt.Printf("found Artist: %s\n", data.Artist)
-		for _, v := range elem {
-			if v == data.Title {
-				fmt.Printf("found Title: %s\n", data.Title)
-				fmt.Printf("filepath: %s\n", path)
+		if elem, ok := songlist[data.Artist]; ok {
+			fmt.Printf("found Artist: %s\n", data.Artist)
+			for _, v := range elem {
+				if v == data.Title {
+					fmt.Printf("found Title: %s\n", data.Title)
+					fmt.Printf("filepath: %s\n", path)
+					songFoundCnt += 1
+				}
 			}
 		}
 	}
@@ -72,6 +74,7 @@ func DirWalk(path string, fi os.FileInfo, err error) error {
 }
 
 func main() {
+	songCnt := 0
 	songlist = make(map[string][]string)
 
 	// Check flags
@@ -133,14 +136,15 @@ func main() {
 			Title := f[2]
 			//fmt.Printf("'%v'\n", Title)
 
-			_, ok := songlist[Artist]
-			if ok {
+			if _, ok := songlist[Artist]; ok {
 				songlist[Artist] = append(songlist[Artist], Title)
 			} else {
 				songlist[Artist] = make([]string, 1)
 				songlist[Artist] = append(songlist[Artist], Title)
 			}
-
+			songCnt += 1
+		} else {
+			fmt.Println("couldn't parse:", s)
 		}
 		//fmt.Println()
 		s, err3 = r.ReadString('\n')
@@ -148,6 +152,7 @@ func main() {
 	}
 
 	//fmt.Println(songlist)
+	fmt.Printf("Load %d songs from list\n", songCnt)
 
 	//Scanner
 
@@ -157,7 +162,8 @@ func main() {
 		fmt.Errorf("Dir Walk error: %v", err2)
 	}
 
-	fmt.Printf("Result: walk %d songs from directory %s\n", len(mp3List), *inputdir)
+	fmt.Printf("Read %d songs from directory %s\n", len(mp3List), *inputdir)
+	fmt.Printf("Result: found %d songs\n", songFoundCnt)
 }
 
 /// TODO:
@@ -174,6 +180,10 @@ func main() {
 /// 3. copy found songs somewhere
 ///    write list unfound songs
 //
+// home:
+// /media/vova/data/music/playlists
+// /media/vova/data/music/playlist_future
+// work:
 // /media/disk/home/music/latin music
 // /home/vova/Музыка/future (on work, fall down)
 
