@@ -20,9 +20,8 @@ type Mp3Song struct {
 }
 
 var mp3List []Mp3Song
-
 var songlist map[string][]string
-var songFoundCnt int
+var songFoundList []string
 
 func GetMp3Data(filename string) (Mp3Song, error) {
 	mp3File, err := id3.Open(filename)
@@ -64,7 +63,7 @@ func DirWalk(path string, fi os.FileInfo, err error) error {
 				if v == data.Title {
 					fmt.Printf("found Title: %s\n", data.Title)
 					fmt.Printf("filepath: %s\n", path)
-					songFoundCnt += 1
+					songFoundList = append(songFoundList, path)
 				}
 			}
 		}
@@ -78,6 +77,7 @@ func main() {
 	songlist = make(map[string][]string)
 
 	// Check flags
+	//
 	inputdir := flag.String("inputdir", "", "Set input dir for searching files")
 	inputlist := flag.String("inputlist", "", "Set song list for searching")
 
@@ -102,7 +102,7 @@ func main() {
 	}
 
 	// Read file with list
-
+	//
 	f, err := os.Open(*inputlist)
 	if err != nil {
 		fmt.Println("Open: unable to open file: ", err)
@@ -154,16 +154,20 @@ func main() {
 	//fmt.Println(songlist)
 	fmt.Printf("Load %d songs from list\n", songCnt)
 
-	//Scanner
-
 	// Walk in dirs
+	//
 	err2 := filepath.Walk(*inputdir, DirWalk)
 	if err2 != nil {
 		fmt.Errorf("Dir Walk error: %v", err2)
 	}
 
+	fmt.Println("Result:")
+	fmt.Println("-------")
 	fmt.Printf("Read %d songs from directory %s\n", len(mp3List), *inputdir)
-	fmt.Printf("Result: found %d songs\n", songFoundCnt)
+	fmt.Printf("found %d songs:\n", len(songFoundList))
+	for _, file := range songFoundList {
+		fmt.Println(file)
+	}
 }
 
 /// TODO:
@@ -177,7 +181,7 @@ func main() {
 /// regexp and see
 /// see https://github.com/StefanSchroeder/Golang-Regex-Tutorial/blob/master/01-chapter1.markdown
 
-/// 3. copy found songs somewhere
+/// 3. Ask user: copy, move, skip, delete with every found file
 ///    write list unfound songs
 //
 // home:
@@ -186,54 +190,3 @@ func main() {
 // work:
 // /media/disk/home/music/latin music
 // /home/vova/Музыка/future (on work, fall down)
-
-// old code
-/*
-func readDir(dirname string) error {
-	dir, err := os.Open(dirname)
-	if err != nil {
-		return err
-	}
-	files, err := dir.Readdirnames(0)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Dir: ", dirname)
-
-	for _, filename := range files {
-		// check that filename is not directory
-		getMp3Data(dirname, filename)
-		// if filepath.Ext(f) != ".article" {
-		// 	continue
-		// }
-		// content, err := parseLesson(tmpl, filepath.Join(content, f))
-		// if err != nil {
-		// 	return fmt.Errorf("parsing %v: %v", f, err)
-		// }
-		// name := strings.TrimSuffix(f, ".article")
-		// lessons[name] = content
-		//fmt.Println("file: ", filename)
-	}
-	return nil
-}
-*/
-
-// old code
-/*
-func getMp3Data(dirname string, filename string) {
-	mp3File, err := id3.Open(filepath.Join(dirname, filename))
-	if err != nil {
-		fmt.Println("Open: unable to open file: ", err)
-		return
-	}
-	defer mp3File.Close()
-
-	fmt.Println("Filename:", filename)
-	fmt.Println("Artist:", mp3File.Artist())
-	fmt.Println("Title:", mp3File.Title())
-
-	fmt.Println("Genre:", mp3File.Genre())
-	fmt.Println("")
-}
-*/
