@@ -63,6 +63,7 @@ func DirWalk(path string, fi os.FileInfo, err error) error {
 				if v == data.Title {
 					fmt.Printf("found Title: %s\n", data.Title)
 					fmt.Printf("filepath: %s\n", path)
+					fmt.Printf("size: %d bytes\n", data.Size)
 					songFoundList = append(songFoundList, path)
 				}
 			}
@@ -161,12 +162,25 @@ func main() {
 		fmt.Errorf("Dir Walk error: %v", err2)
 	}
 
+	cntFoundSongs := len(songFoundList)
+
 	fmt.Println("Result:")
 	fmt.Println("-------")
 	fmt.Printf("Read %d songs from directory %s\n", len(mp3List), *inputdir)
-	fmt.Printf("found %d songs:\n", len(songFoundList))
-	for _, file := range songFoundList {
-		fmt.Println(file)
+	fmt.Printf("found %d songs:\n", cntFoundSongs)
+	for k, filename := range songFoundList {
+		i := k + 1
+		fmt.Printf("[%d] %s\n", i, filename)
+		fmt.Println()
+		fmt.Printf("Set %d of %d. choose action (c)opy, (m)ove, (s)kip, (d)elete: ", i, cntFoundSongs)
+		in := ""
+		fmt.Scanln(&in)
+		switch in {
+		case "c":
+			fmt.Println("copy")
+		default:
+			fmt.Println(in)
+		}
 	}
 }
 
