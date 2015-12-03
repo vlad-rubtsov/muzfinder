@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	id3 "github.com/mikkyang/id3-go"
 )
@@ -43,7 +45,7 @@ func GetMp3Data(filename string) (Mp3Song, error) {
 func DirWalk(path string, fi os.FileInfo, err error) error {
 	//fmt.Println("walk path: ", path)
 	if fi.IsDir() {
-		fmt.Println(path)
+		fmt.Println("Search in ", path)
 		fmt.Printf("Process %d files\n", len(mp3List))
 		return nil
 	}
@@ -61,12 +63,17 @@ func DirWalk(path string, fi os.FileInfo, err error) error {
 		/// for this create unique list of Artists and Titles
 
 		if elem, ok := songlist[data.Artist]; ok {
-			fmt.Printf("found Artist: %s\n", data.Artist)
+			fmt.Println()
+			fmt.Printf("found Artist: %s, found Title: %s, looking for: %v\n", data.Artist, data.Title, elem)
 			for _, v := range elem {
-				if v == data.Title {
+				if strings.Contains(strings.ToLower(data.Title), strings.ToLower(v)) {
 					fmt.Printf("found Title: %s\n", data.Title)
+
+					// fmt.Printf("%s == %s\n",
+					// 	strings.ToLower(data.Title), strings.ToLower(v))
 					fmt.Printf("filepath: %s\n", path)
 					fmt.Printf("size: %d bytes\n", data.Size)
+
 					songFoundList = append(songFoundList, path)
 				}
 			}
@@ -165,7 +172,7 @@ func main() {
 			if _, ok := songlist[Artist]; ok {
 				songlist[Artist] = append(songlist[Artist], Title)
 			} else {
-				songlist[Artist] = make([]string, 1)
+				songlist[Artist] = make([]string, 0)
 				songlist[Artist] = append(songlist[Artist], Title)
 			}
 			songCnt += 1
@@ -203,7 +210,8 @@ func main() {
 		switch in {
 		case "c":
 			mkdir(*outdir)
-			fmt.Println("copy file")
+			// TODO: make result filepath
+			fmt.Println("copy file %s to %s\n", filename, *outdir)
 		case "m":
 			mkdir(*outdir)
 			// os.Rename(filename, outdir + (filename - oldDirPrefix))
@@ -216,6 +224,25 @@ func main() {
 			fmt.Println(in)
 		}
 	}
+}
+
+func CopyFile(dst, src string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, in)
+	cerr := out.Close()
+	if err != nil {
+		return err
+	}
+	return cerr
 }
 
 /// TODO:
