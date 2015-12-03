@@ -57,6 +57,9 @@ func DirWalk(path string, fi os.FileInfo, err error) error {
 		data.Size = fi.Size()
 		mp3List = append(mp3List, data)
 
+		/// TODO: check with Artist, Title as partial match
+		/// for this create unique list of Artists and Titles
+
 		if elem, ok := songlist[data.Artist]; ok {
 			fmt.Printf("found Artist: %s\n", data.Artist)
 			for _, v := range elem {
@@ -73,6 +76,20 @@ func DirWalk(path string, fi os.FileInfo, err error) error {
 	return nil
 }
 
+func mkdir(dir string) {
+	f, err := os.Open(dir)
+	if err == nil {
+		// already exist
+		defer f.Close()
+		return
+	}
+
+	err2 := os.Mkdir(dir, 0755)
+	if err2 != nil {
+		fmt.Errorf("Mkdir %s: %s", dir, err2)
+	}
+}
+
 func main() {
 	songCnt := 0
 	songlist = make(map[string][]string)
@@ -81,6 +98,7 @@ func main() {
 	//
 	inputdir := flag.String("inputdir", "", "Set input dir for searching files")
 	inputlist := flag.String("inputlist", "", "Set song list for searching")
+	outdir := flag.String("outdir", "", "Set out dir for copying/moving files")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s OPTIONS\n", os.Args[0])
@@ -98,6 +116,13 @@ func main() {
 	if *inputlist == "" {
 		fmt.Fprintf(os.Stderr, "Not set inputlist\n")
 		fmt.Fprintf(os.Stderr, "Usage: %s -inputlist list\n", os.Args[0])
+		flag.PrintDefaults()
+		os.Exit(2)
+	}
+
+	if *outdir == "" {
+		fmt.Fprintf(os.Stderr, "Not set outdir\n")
+		fmt.Fprintf(os.Stderr, "Usage: %s -outdir dir\n", os.Args[0])
 		flag.PrintDefaults()
 		os.Exit(2)
 	}
@@ -172,12 +197,21 @@ func main() {
 		i := k + 1
 		fmt.Printf("[%d] %s\n", i, filename)
 		fmt.Println()
-		fmt.Printf("Set %d of %d. choose action (c)opy, (m)ove, (s)kip, (d)elete: ", i, cntFoundSongs)
+		fmt.Printf("Set %d of %d. choose action: (c)opy, (m)ove, (s)kip, (d)elete: ", i, cntFoundSongs)
 		in := ""
 		fmt.Scanln(&in)
 		switch in {
 		case "c":
-			fmt.Println("copy")
+			mkdir(*outdir)
+			fmt.Println("copy file")
+		case "m":
+			mkdir(*outdir)
+			// os.Rename(filename, outdir + (filename - oldDirPrefix))
+			fmt.Printf("move file %s to %s\n", filename, *outdir)
+		case "s":
+			fmt.Println("skip file")
+		case "d":
+			fmt.Println("delete file")
 		default:
 			fmt.Println(in)
 		}
@@ -188,12 +222,13 @@ func main() {
 /// 1. parse flags
 /// -inputdir [dir1 dir2] - directories for searching files
 /// -inputlist file - song list for looking for
-/// -outputdir - directory to copy/remove files
+/// -outdir - directory to copy/move files
 /// -options = copy|remove, add trackid, change trackid as id file
 
 /// 2. get Artist - Title from songlist
 /// regexp and see
 /// see https://github.com/StefanSchroeder/Golang-Regex-Tutorial/blob/master/01-chapter1.markdown
+/// check with Artist, Title as partial match
 
 /// 3. Ask user: copy, move, skip, delete with every found file
 ///    write list unfound songs
