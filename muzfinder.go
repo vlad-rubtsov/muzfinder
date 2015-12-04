@@ -68,12 +68,10 @@ func DirWalk(path string, fi os.FileInfo, err error) error {
 			for _, v := range elem {
 				if strings.Contains(strings.ToLower(data.Title), strings.ToLower(v)) {
 					fmt.Printf("found Title: %s\n", data.Title)
-
 					// fmt.Printf("%s == %s\n",
 					// 	strings.ToLower(data.Title), strings.ToLower(v))
 					fmt.Printf("filepath: %s\n", path)
 					fmt.Printf("size: %d bytes\n", data.Size)
-
 					songFoundList = append(songFoundList, path)
 				}
 			}
@@ -211,7 +209,13 @@ func main() {
 		case "c":
 			mkdir(*outdir)
 			// TODO: make result filepath
-			fmt.Println("copy file %s to %s\n", filename, *outdir)
+			_, file := filepath.Split(filename)
+			newfilename := filepath.Join(*outdir, file)
+			fmt.Printf("copy file %s to %s\n", filename, newfilename)
+			cerr := CopyFile(filename, newfilename)
+			if cerr != nil {
+				fmt.Printf("error copy file: %v\n", cerr)
+			}
 		case "m":
 			mkdir(*outdir)
 			// os.Rename(filename, outdir + (filename - oldDirPrefix))
@@ -226,7 +230,7 @@ func main() {
 	}
 }
 
-func CopyFile(dst, src string) error {
+func CopyFile(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
 		return err
@@ -258,6 +262,7 @@ func CopyFile(dst, src string) error {
 /// check with Artist, Title as partial match
 
 /// 3. Ask user: copy, move, skip, delete with every found file
+/// 3.a. Add copy all, skip all, move all, delete all
 ///    write list unfound songs
 //
 // home:
