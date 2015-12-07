@@ -208,22 +208,30 @@ func main() {
 		switch in {
 		case "c":
 			mkdir(*outdir)
-			// TODO: make result filepath
 			_, file := filepath.Split(filename)
 			newfilename := filepath.Join(*outdir, file)
 			fmt.Printf("copy file %s to %s\n", filename, newfilename)
 			cerr := CopyFile(filename, newfilename)
 			if cerr != nil {
-				fmt.Printf("error copy file: %v\n", cerr)
+				fmt.Printf("Error copy file: %v\n", cerr)
 			}
 		case "m":
-			mkdir(*outdir)
-			// os.Rename(filename, outdir + (filename - oldDirPrefix))
 			fmt.Printf("move file %s to %s\n", filename, *outdir)
+			mkdir(*outdir)
+			_, file := filepath.Split(filename)
+			newfilename := filepath.Join(*outdir, file)
+			err := os.Rename(filename, newfilename)
+			if err != nil {
+				fmt.Printf("Error remove file: %s\n", err)
+			}
 		case "s":
 			fmt.Println("skip file")
 		case "d":
 			fmt.Println("delete file")
+			err := os.Remove(filename)
+			if err != nil {
+				fmt.Printf("Error delete file: %s\n", err)
+			}
 		default:
 			fmt.Println(in)
 		}
