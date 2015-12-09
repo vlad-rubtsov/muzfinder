@@ -149,6 +149,7 @@ func main() {
 
 	// pattern to get form filename: "^\d+\. (.*) - (.*)\.mp3$"
 	rxp, _ := regexp.Compile(`(.*) [-—]{1,2} (.*)`)
+	//rxp, _ := regexp.Compile(`([0-9]+). (.*) [-—]{1,2} (.*)`)
 
 	for err3 == nil {
 		//fmt.Printf("read[%d]: %s", i, s)
@@ -182,7 +183,7 @@ func main() {
 		i++
 	}
 
-	//fmt.Println(songlist)
+	fmt.Println(songlist)
 	fmt.Printf("Load %d songs from list\n", songCnt)
 
 	// Walk in dirs
@@ -201,15 +202,23 @@ func main() {
 	in := ""
 	for k, filename := range songFoundList {
 		i := k + 1
-		fmt.Printf("[%d] %s\n", i, filename)
 		fmt.Println()
-		if in != "sa" {
-			fmt.Printf("Set %d of %d. choose action: (c)opy, (m)ove, (s)kip, (d)elete, (sa)skip all: ",
-				i, cntFoundSongs)
+		fmt.Printf("[%d] %s\n", i, filename)
+		if in != "sa" && in != "ca" {
+			fmt.Printf("Set %d of %d. choose action: (c)opy, (m)ove, (s)kip, (d)elete, (ca)copy all, (sa)skip all: ", i, cntFoundSongs)
 			fmt.Scanln(&in)
 		}
 		switch in {
 		case "c":
+			mkdir(*outdir)
+			_, file := filepath.Split(filename)
+			newfilename := filepath.Join(*outdir, file)
+			fmt.Printf("copy file %s to %s\n", filename, newfilename)
+			cerr := CopyFile(filename, newfilename)
+			if cerr != nil {
+				fmt.Printf("Error copy file: %v\n", cerr)
+			}
+		case "ca":
 			mkdir(*outdir)
 			_, file := filepath.Split(filename)
 			newfilename := filepath.Join(*outdir, file)
@@ -263,7 +272,7 @@ func CopyFile(src, dst string) error {
 }
 
 /// TODO:
-/// 1. parse flags
+/// 1. parse flags (done)
 /// -inputdir [dir1 dir2] - directories for searching files
 /// -inputlist file - song list for looking for
 /// -outdir - directory to copy/move files
@@ -272,15 +281,20 @@ func CopyFile(src, dst string) error {
 /// 2. get Artist - Title from songlist
 /// regexp and see
 /// see https://github.com/StefanSchroeder/Golang-Regex-Tutorial/blob/master/01-chapter1.markdown
-/// check with Artist, Title as partial match
+/// check with Artist, Title with filename as partial match (todo)
 
-/// 3. Ask user: copy, move, skip, delete with every found file
-/// 3.a. Add copy all, skip all, move all, delete all
-///    write list unfound songs
+/// 3. Ask user: copy, move, skip, delete with every found file (done)
+/// 3.1. Add copy all, skip all, move all, delete all (todo)
+/// 3.2. Write list unfound songs to later search or search in VK (todo)
+
+/// 4. Add config file with arg options  (todo)
+/// read from config then rewrite from args
+/// useful because music dir doesn't change often
+/// support various inputdirs, * in songlist
 //
 // home:
 // /media/vova/data/music/playlists
 // /media/vova/data/music/playlist_future
 // work:
 // /media/disk/home/music/latin music
-// /home/vova/Музыка/future (on work, fall down)
+// /home/vova/Музыка
