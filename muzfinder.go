@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	id3 "github.com/mikkyang/id3-go"
+	//gcfg "code.google.com/p/gcfg"
+	gcfg "gopkg.in/gcfg.v1"
 )
 
 type Mp3Song struct {
@@ -19,6 +21,16 @@ type Mp3Song struct {
 	Title    string
 	Genre    string
 	Size     int64
+}
+
+type Config struct {
+	InputDir  string
+	InputList string
+	OutDir    string
+}
+
+type configFile struct {
+	Muzfinder Config
 }
 
 var mp3List []Mp3Song
@@ -95,9 +107,23 @@ func mkdir(dir string) {
 	}
 }
 
+func loadConfig(cfgFile string) Config {
+	var cfg configFile
+	err := gcfg.ReadFileInto(&cfg, cfgFile)
+	if err != nil {
+		fmt.Errorf("Error reading config file: %s", err)
+	}
+
+	return cfg.Muzfinder
+}
+
 func main() {
 	songCnt := 0
 	songlist = make(map[string][]string)
+
+	cfg := loadConfig("muzfinder.conf")
+
+	fmt.Printf("Cfg: %v\n", cfg)
 
 	// Check flags
 	//
@@ -111,21 +137,27 @@ func main() {
 	}
 	flag.Parse()
 
-	if *inputdir == "" {
+	if *inputdir == "" && cfg.InputDir == "" {
 		fmt.Fprintf(os.Stderr, "Not set inputdir\n")
 		fmt.Fprintf(os.Stderr, "Usage: %s -inputdir dir\n", os.Args[0])
 		flag.PrintDefaults()
 		os.Exit(2)
 	}
+	if *inputdir != "" {
+		cfg.InputDir = *inputdir
+	}
 
-	if *inputlist == "" {
+	if *inputlist == "" && cfg.InputList == "" {
 		fmt.Fprintf(os.Stderr, "Not set inputlist\n")
 		fmt.Fprintf(os.Stderr, "Usage: %s -inputlist list\n", os.Args[0])
 		flag.PrintDefaults()
 		os.Exit(2)
 	}
+	if *inputlist != "" {
+		cfg.InputList = *inputlist
+	}
 
-	if *outdir == "" {
+	if *outdir == "" && cfg.OutDir == "" {
 		fmt.Fprintf(os.Stderr, "Not set outdir\n")
 		fmt.Fprintf(os.Stderr, "Usage: %s -outdir dir\n", os.Args[0])
 		flag.PrintDefaults()
@@ -134,9 +166,9 @@ func main() {
 
 	// Read file with list
 	//
-	f, err := os.Open(*inputlist)
+	f, err := os.Open(cfg.InputList)
 	if err != nil {
-		fmt.Println("Open: unable to open file: ", err)
+		fmt.Println("Error: unable to open file: ", err)
 		os.Exit(3)
 	}
 	defer f.Close()
@@ -188,16 +220,20 @@ func main() {
 
 	// Walk in dirs
 	//
-	err2 := filepath.Walk(*inputdir, DirWalk)
-	if err2 != nil {
-		fmt.Errorf("Dir Walk error: %v", err2)
+	dirs := strings.Split(cfg.InputDir, ",")
+	//dir := dirs[0]
+	for _, dir := range dirs {
+		err2 := filepath.Walk(dir, DirWalk)
+		if err2 != nil {
+			fmt.Errorf("Dir Walk error: %v", err2)
+		}
 	}
 
 	cntFoundSongs := len(songFoundList)
 
 	fmt.Println("Result:")
 	fmt.Println("-------")
-	fmt.Printf("Read %d songs from directory %s\n", len(mp3List), *inputdir)
+	fmt.Printf("Read %d songs from directory %s\n", len(mp3List), cfg.InputDir)
 	fmt.Printf("found %d songs:\n", cntFoundSongs)
 	in := ""
 	for k, filename := range songFoundList {
@@ -293,8 +329,11 @@ func CopyFile(src, dst string) error {
 /// support various inputdirs, * in songlist
 //
 // home:
+// /media/vova/data/music
 // /media/vova/data/music/playlists
 // /media/vova/data/music/playlist_future
+// /media/vova/new1/music/latin music
+// /media/vova/data/vkaudiosaver
 // work:
 // /media/disk/home/music/latin music
 // /home/vova/Музыка
