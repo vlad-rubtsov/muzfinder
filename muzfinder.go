@@ -64,10 +64,10 @@ func DirWalk(path string, fi os.FileInfo, err error) error {
 
 		if elem, ok := songlist[data.Artist]; ok {
 			fmt.Println()
-			fmt.Printf("found Artist: %s, found Title: %s, looking for: %v\n", data.Artist, data.Title, elem)
+			fmt.Printf("Found Artist: %s, Title: %s, looking for: %v\n", data.Artist, data.Title, elem)
 			for _, v := range elem {
 				if strings.Contains(strings.ToLower(data.Title), strings.ToLower(v)) {
-					fmt.Printf("found Title: %s\n", data.Title)
+					fmt.Printf("Found Title: %s\n", data.Title)
 					// fmt.Printf("%s == %s\n",
 					// 	strings.ToLower(data.Title), strings.ToLower(v))
 					fmt.Printf("filepath: %s\n", path)
@@ -198,13 +198,16 @@ func main() {
 	fmt.Println("-------")
 	fmt.Printf("Read %d songs from directory %s\n", len(mp3List), *inputdir)
 	fmt.Printf("found %d songs:\n", cntFoundSongs)
+	in := ""
 	for k, filename := range songFoundList {
 		i := k + 1
 		fmt.Printf("[%d] %s\n", i, filename)
 		fmt.Println()
-		fmt.Printf("Set %d of %d. choose action: (c)opy, (m)ove, (s)kip, (d)elete: ", i, cntFoundSongs)
-		in := ""
-		fmt.Scanln(&in)
+		if in != "sa" {
+			fmt.Printf("Set %d of %d. choose action: (c)opy, (m)ove, (s)kip, (d)elete, (sa)skip all: ",
+				i, cntFoundSongs)
+			fmt.Scanln(&in)
+		}
 		switch in {
 		case "c":
 			mkdir(*outdir)
@@ -226,8 +229,10 @@ func main() {
 			}
 		case "s":
 			fmt.Println("skip file")
+		case "sa":
+			fmt.Println("skip all files")
 		case "d":
-			fmt.Println("delete file")
+			fmt.Printf("delete file %s\n", filename)
 			err := os.Remove(filename)
 			if err != nil {
 				fmt.Printf("Error delete file: %s\n", err)
