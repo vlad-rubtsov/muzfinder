@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	id3 "github.com/mikkyang/id3-go"
-	//gcfg "code.google.com/p/gcfg"
 	gcfg "gopkg.in/gcfg.v1"
 )
 
@@ -57,8 +56,8 @@ func GetMp3Data(filename string) (Mp3Song, error) {
 func DirWalk(path string, fi os.FileInfo, err error) error {
 	//fmt.Println("walk path: ", path)
 	if fi.IsDir() {
-		fmt.Println("Search in ", path)
-		fmt.Printf("Process %d files\n", len(mp3List))
+		//fmt.Println("Search in ", path)
+		//fmt.Printf("Process %d files\n", len(mp3List))
 		return nil
 	}
 
@@ -75,8 +74,7 @@ func DirWalk(path string, fi os.FileInfo, err error) error {
 		/// for this create unique list of Artists and Titles
 
 		if elem, ok := songlist[data.Artist]; ok {
-			fmt.Println()
-			fmt.Printf("Found Artist: %s, Title: %s, looking for: %v\n", data.Artist, data.Title, elem)
+			//fmt.Printf("\nFound Artist: %s, Title: %s, looking for: %v\n", data.Artist, data.Title, elem)
 			for _, v := range elem {
 				if strings.Contains(strings.ToLower(data.Title), strings.ToLower(v)) {
 					fmt.Printf("Found Title: %s\n", data.Title)
@@ -96,11 +94,10 @@ func DirWalk(path string, fi os.FileInfo, err error) error {
 func mkdir(dir string) {
 	f, err := os.Open(dir)
 	if err == nil {
-		// already exist
+		// if already exist
 		defer f.Close()
 		return
 	}
-
 	err2 := os.Mkdir(dir, 0755)
 	if err2 != nil {
 		fmt.Errorf("Mkdir %s: %s", dir, err2)
@@ -113,17 +110,63 @@ func loadConfig(cfgFile string) Config {
 	if err != nil {
 		fmt.Errorf("Error reading config file: %s", err)
 	}
-
 	return cfg.Muzfinder
 }
 
-func main() {
+// readSongList reads songs with songlist, parse it as Artist - Title and save
+func readSongList(cfg Config) int {
 	songCnt := 0
+
+	f, err := os.Open(cfg.InputList)
+	if err != nil {
+		fmt.Println("Error: unable to open file: ", err)
+		os.Exit(3)
+	}
+	defer f.Close()
+
+	//var fileList []string
+
+	r := bufio.NewReader(f)
+	s, err3 := r.ReadString('\n')
+	i := 1
+
+	// pattern to get form filename: "^\d+\. (.*) - (.*)\.mp3$"
+	rxp, _ := regexp.Compile(`(.*) [-—]{1,2} (.*)`)
+	//rxp, _ := regexp.Compile(`([0-9]+). (.*) [-—]{1,2} (.*)`)
+
+	for err3 == nil {
+		//fmt.Printf("read[%d]: %s", i, s)
+		//fileList = append(fileList, s)
+		//fmt.Println(rxp.FindString(s))
+		f := rxp.FindStringSubmatch(s)
+
+		// for k, v := range f {
+		// 	fmt.Printf("%d. %s\n", k, v)
+		// }
+		// if len(f) > 0 {
+		// 	fmt.Printf("%d. %s\n", 0, f[0])
+		// }
+		if len(f) == 3 {
+			Artist := f[1]
+			Title := f[2]
+			//fmt.Printf("'%v'\n", Title)
+			songlist[Artist] = append(songlist[Artist], Title)
+
+			songCnt += 1
+		} else {
+			fmt.Println("couldn't parse:", s)
+		}
+		//fmt.Println()
+		s, err3 = r.ReadString('\n')
+		i++
+	}
+	return songCnt
+}
+
+func main() {
 	songlist = make(map[string][]string)
 
 	cfg := loadConfig("muzfinder.conf")
-
-	fmt.Printf("Cfg: %v\n", cfg)
 
 	// Check flags
 	//
@@ -166,66 +209,18 @@ func main() {
 
 	// Read file with list
 	//
-	f, err := os.Open(cfg.InputList)
-	if err != nil {
-		fmt.Println("Error: unable to open file: ", err)
-		os.Exit(3)
-	}
-	defer f.Close()
+	songCnt := readSongList(cfg)
 
-	var fileList []string
-
-	r := bufio.NewReader(f)
-	s, err3 := r.ReadString('\n')
-	i := 1
-
-	// pattern to get form filename: "^\d+\. (.*) - (.*)\.mp3$"
-	rxp, _ := regexp.Compile(`(.*) [-—]{1,2} (.*)`)
-	//rxp, _ := regexp.Compile(`([0-9]+). (.*) [-—]{1,2} (.*)`)
-
-	for err3 == nil {
-		//fmt.Printf("read[%d]: %s", i, s)
-		fileList = append(fileList, s)
-		//fmt.Println(rxp.FindString(s))
-		f := rxp.FindStringSubmatch(s)
-
-		// for k, v := range f {
-		// 	fmt.Printf("%d. %s\n", k, v)
-		// }
-		// if len(f) > 0 {
-		// 	fmt.Printf("%d. %s\n", 0, f[0])
-		// }
-		if len(f) == 3 {
-			Artist := f[1]
-			Title := f[2]
-			//fmt.Printf("'%v'\n", Title)
-
-			if _, ok := songlist[Artist]; ok {
-				songlist[Artist] = append(songlist[Artist], Title)
-			} else {
-				songlist[Artist] = make([]string, 0)
-				songlist[Artist] = append(songlist[Artist], Title)
-			}
-			songCnt += 1
-		} else {
-			fmt.Println("couldn't parse:", s)
-		}
-		//fmt.Println()
-		s, err3 = r.ReadString('\n')
-		i++
-	}
-
-	fmt.Println(songlist)
+	//fmt.Println(songlist)
 	fmt.Printf("Load %d songs from list\n", songCnt)
 
 	// Walk in dirs
 	//
 	dirs := strings.Split(cfg.InputDir, ",")
-	//dir := dirs[0]
 	for _, dir := range dirs {
-		err2 := filepath.Walk(dir, DirWalk)
-		if err2 != nil {
-			fmt.Errorf("Dir Walk error: %v", err2)
+		err := filepath.Walk(dir, DirWalk)
+		if err != nil {
+			fmt.Errorf("DirWalk error: %v", err)
 		}
 	}
 
@@ -312,7 +307,7 @@ func CopyFile(src, dst string) error {
 /// -inputdir [dir1 dir2] - directories for searching files
 /// -inputlist file - song list for looking for
 /// -outdir - directory to copy/move files
-/// -options = copy|remove, add trackid, change trackid as id file
+/// -options = copy|remove, add trackid, change trackid as id file?
 
 /// 2. get Artist - Title from songlist
 /// regexp and see
@@ -323,10 +318,14 @@ func CopyFile(src, dst string) error {
 /// 3.1. Add copy all, skip all, move all, delete all (todo)
 /// 3.2. Write list unfound songs to later search or search in VK (todo)
 
-/// 4. Add config file with arg options  (todo)
+/// 4. Add config file with arg options  (done)
 /// read from config then rewrite from args
 /// useful because music dir doesn't change often
-/// support various inputdirs, * in songlist
+/// support various inputdirs, * in songlist (todo)
+
+/// 5. Add logger and some debug levels
+
+/// 6. Support different song names w/ and w/out id
 //
 // home:
 // /media/vova/data/music
