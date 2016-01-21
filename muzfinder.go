@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	id3 "github.com/mikkyang/id3-go"
+	tagg "github.com/wtolson/go-taglib"
 	gcfg "gopkg.in/gcfg.v1"
 )
 
@@ -37,7 +37,7 @@ var songlist map[string][]string
 var songFoundList []string
 
 func GetMp3Data(filename string) (Mp3Song, error) {
-	mp3File, err := id3.Open(filename)
+	mp3File, err := tagg.Read(filename)
 	if err != nil {
 		fmt.Println("Open: unable to open file: ", err)
 		return Mp3Song{}, err
@@ -205,6 +205,9 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Usage: %s -outdir dir\n", os.Args[0])
 		flag.PrintDefaults()
 		os.Exit(2)
+	}
+	if *outdir == "" {
+		*outdir = cfg.OutDir
 	}
 
 	// Read file with list
